@@ -73,7 +73,7 @@ fn main() {
         .source_file("keccak.cl")
         .source_file("profanity.cl")
         .cmplr_opt(format!("-D PROFANITY_INVERSE_SIZE={}", config.inverse_size))
-        .cmplr_opt(format!("-D PROFANITY_MAX_SCORE={}", config.get_max_score()))
+        .cmplr_opt(format!("-D PROFANITY_MAX_SCORE={}", config.max_score))
         .devices(&devices)
         .build(&context)
         .unwrap();

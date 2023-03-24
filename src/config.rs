@@ -1,5 +1,5 @@
 use ocl::prm::cl_uchar;
-use std::fmt;
+use std::{fmt, time::Duration};
 
 use crate::{
     types::{ScoreData, SCORE_DATA_SIZE},
@@ -11,6 +11,7 @@ pub const DEFAULT_PROFANITY_INVERSE_MULTIPLIER: usize = 16384;
 pub const DEFAULT_PROFANITY_LOCAL_WORK_SIZE: usize = 64;
 
 const SPEED_METER_SAMPLE_COUNT: usize = 40;
+const SPEED_REFRESH_INTERVAL: Duration = Duration::from_millis(100);
 const PROFANITY_MAX_SCORE: usize = 40;
 
 pub struct Config {
@@ -22,6 +23,9 @@ pub struct Config {
     pub compact_speed: bool,
     pub local_work_size: usize,
     pub max_work_size: usize,
+    pub speed_meter_sample_count: usize,
+    pub max_score: usize,
+    pub speed_refresh_interval: Duration,
 }
 
 impl Config {
@@ -48,15 +52,10 @@ impl Config {
             } else {
                 max_work_size
             },
+            speed_meter_sample_count: SPEED_METER_SAMPLE_COUNT,
+            max_score: PROFANITY_MAX_SCORE,
+            speed_refresh_interval: SPEED_REFRESH_INTERVAL,
         }
-    }
-
-    pub fn get_speed_meter_sample_count(&self) -> usize {
-        SPEED_METER_SAMPLE_COUNT
-    }
-
-    pub fn get_max_score(&self) -> usize {
-        PROFANITY_MAX_SCORE
     }
 }
 

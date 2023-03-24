@@ -62,7 +62,7 @@ impl<'a> ComputeUnit<'a> {
         let mem_result = Buffer::builder()
             .queue(queue.clone())
             .flags(MemFlags::READ_WRITE | MemFlags::HOST_READ_ONLY)
-            .len(config.get_max_score() + 1)
+            .len(config.max_score + 1)
             .build()
             .unwrap();
 
@@ -91,7 +91,7 @@ impl<'a> ComputeUnit<'a> {
             finish_event,
             device_index,
             queue: queue.clone(),
-            speed_meter: SpeedMeter::new(config.get_speed_meter_sample_count()),
+            speed_meter: SpeedMeter::new(config.speed_meter_sample_count),
 
             size_initialized: 0,
             last_init_size: 0,
@@ -270,7 +270,7 @@ impl<'a> ComputeUnit<'a> {
 
         let mut event = Event::empty();
 
-        self.last_result = vec![HashResult::new(); self.config.get_max_score() + 1];
+        self.last_result = vec![HashResult::new(); self.config.max_score];
         self.mem_result
             .read(&mut self.last_result)
             .enew(&mut event)

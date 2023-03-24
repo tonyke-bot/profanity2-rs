@@ -6,6 +6,7 @@ use ocl::{
 use std::{
     ffi::c_void,
     sync::{Mutex, RwLock},
+    time::Instant,
 };
 
 use crate::{
@@ -23,7 +24,7 @@ pub struct Dispatcher<'a> {
     config: &'a Config,
     self_ptr: *mut Dispatcher<'a>,
 
-    time_start: std::time::Instant,
+    time_start: Instant,
     max_score: Mutex<usize>,
     total_size: usize,
     total_initialized: RwLock<usize>,
@@ -31,6 +32,7 @@ pub struct Dispatcher<'a> {
     compute_units: Vec<ComputeUnit<'a>>,
 
     print_lock: Mutex<bool>,
+    last_speed_refresh: Mutex<Instant>,
 }
 
 impl<'a> Dispatcher<'a> {
@@ -41,7 +43,7 @@ impl<'a> Dispatcher<'a> {
             total_initialized: RwLock::new(0),
             total_size: 0,
             self_ptr: std::ptr::null_mut(),
-            time_start: std::time::Instant::now(),
+            time_start: Instant::now(),
 
             finish_events: vec![],
             compute_units: vec![],
@@ -49,6 +51,7 @@ impl<'a> Dispatcher<'a> {
 
             config,
             print_lock: Mutex::new(false),
+            last_speed_refresh: Mutex::new(Instant::now() - config.speed_refresh_interval),
         };
 
         dispatcher.self_ptr = &mut dispatcher as *mut Dispatcher;
@@ -89,8 +92,8 @@ impl<'a> Dispatcher<'a> {
                     "  {:.2}%",
                     total_initialized as f64 * 100f64 / dispatcher.total_size as f64
                 );
-            },
-            Err(_) => {},
+            }
+            Err(_) => {}
         }
 
         let done = compute_unit.init_continue(
@@ -138,7 +141,7 @@ impl<'a> Dispatcher<'a> {
     }
 
     pub fn run(&mut self) {
-        self.time_start = std::time::Instant::now();
+        self.time_start = Instant::now();
         let event_finished = Event::user(&self.context).unwrap();
 
         for cu in &mut self.compute_units {
@@ -214,6 +217,18 @@ impl<'a> Dispatcher<'a> {
     }
 
     fn print_speed(&self) {
+        if let Ok(mut t) = self.last_speed_refresh.try_lock() {
+            let now = Instant::now();
+
+            if now.duration_since(*t) < self.config.speed_refresh_interval {
+                return;
+            }
+
+            *t = now;
+        } else {
+            return;
+        }
+
         // Skip if another thread is printing.
         let lock = match self.print_lock.try_lock() {
             Ok(l) => l,

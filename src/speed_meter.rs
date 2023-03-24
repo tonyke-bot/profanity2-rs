@@ -5,7 +5,7 @@ pub struct SpeedMeter {
 
     lock: Mutex<bool>,
 
-    last_sample_time: std::time::Instant,
+    last_sample_time: Instant,
     samples: LinkedList<f64>,
 }
 
