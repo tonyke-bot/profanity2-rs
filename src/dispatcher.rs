@@ -149,9 +149,10 @@ impl<'a> Dispatcher<'a> {
 
         while i > max_score {
             let r = &result[i];
+            let new_max_score = i as u8;
 
-            if r.found > 0 && (i as cl_ulong) > cu.get_max_score() {
-                cu.set_max_score(i as cl_ulong);
+            if r.found > 0 && (new_max_score) > cu.get_max_score() {
+                cu.set_max_score(new_max_score);
 
                 {
                     let mut guard = self.max_score.lock().unwrap();

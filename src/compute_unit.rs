@@ -11,7 +11,7 @@ use crate::{
     config::{Config, HashTarget},
     precomp::PRECOMP_DATA,
     speed_meter::SpeedMeter,
-    types::{HashResult, MpNumber, Point},
+    types::{HashResult, MpNumber},
     types::{ScoreData, SCORE_DATA_SIZE},
 };
 
@@ -31,7 +31,7 @@ pub struct ComputeUnit<'a> {
     seed: Ulong4,
     seed_x: Ulong4,
     seed_y: Ulong4,
-    max_score: Mutex<cl_ulong>,
+    max_score: Mutex<u8>,
 
     round: usize,
     size_initialized: usize,
@@ -304,11 +304,11 @@ impl<'a> ComputeUnit<'a> {
         &self.last_result
     }
 
-    pub fn set_max_score(&self, max_score: cl_ulong) {
+    pub fn set_max_score(&self, max_score: u8) {
         *self.max_score.lock().unwrap() = max_score;
     }
 
-    pub fn get_max_score(&self) -> cl_ulong {
+    pub fn get_max_score(&self) -> u8 {
         *self.max_score.lock().unwrap()
     }
 
