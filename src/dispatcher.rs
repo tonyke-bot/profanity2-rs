@@ -83,10 +83,15 @@ impl<'a> Dispatcher<'a> {
             *guard
         };
 
-        clear_p!(
-            "  {:.2}%",
-            total_initialized as f64 * 100f64 / dispatcher.total_size as f64
-        );
+        match dispatcher.print_lock.try_lock() {
+            Ok(_) => {
+                clear_p!(
+                    "  {:.2}%",
+                    total_initialized as f64 * 100f64 / dispatcher.total_size as f64
+                );
+            },
+            Err(_) => {},
+        }
 
         let done = compute_unit.init_continue(
             Dispatcher::init_callback,
@@ -94,7 +99,9 @@ impl<'a> Dispatcher<'a> {
         );
 
         if done {
+            let lock = dispatcher.print_lock.lock().unwrap();
             clear_pln!("  GPU{} initialized", compute_unit.get_device_index());
+            drop(lock);
         }
     }
 
@@ -189,7 +196,7 @@ impl<'a> Dispatcher<'a> {
             format!("{}s", time_elapsed / 1000)
         };
 
-        let _lock = self.print_lock.lock().unwrap();
+        let lock = self.print_lock.lock().unwrap();
 
         clear_pln!(
             "  Score: {:<2} Time: {:<7} {}: 0x{} Key: {:016x}{:016x}{:016x}{:016x}",
@@ -202,11 +209,13 @@ impl<'a> Dispatcher<'a> {
             seed1,
             seed0
         );
+
+        drop(lock);
     }
 
     fn print_speed(&self) {
         // Skip if another thread is printing.
-        let _lock = match self.print_lock.try_lock() {
+        let lock = match self.print_lock.try_lock() {
             Ok(l) => l,
             Err(_) => {
                 return;
@@ -234,6 +243,8 @@ impl<'a> Dispatcher<'a> {
         }
 
         clear_p!("Total Speed: {:>10}{}", format_speed(total_speed), message);
+
+        drop(lock)
     }
 }
 

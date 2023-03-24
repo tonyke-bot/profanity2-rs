@@ -20,30 +20,40 @@ impl SpeedMeter {
     }
 
     pub fn reset(&mut self) {
-        let _lock = self.lock.lock().unwrap();
+        let lock = self.lock.lock().unwrap();
+
         self.last_sample_time = Instant::now();
         self.samples.clear();
+
+        drop(lock);
     }
 
     pub fn get_speed(&self) -> f64 {
-        let _lock = self.lock.lock().unwrap();
+        let lock = self.lock.lock().unwrap();
 
-        let mut sum = 0.0;
-        for sample in self.samples.iter() {
-            sum += sample;
+        let sample_count = self.samples.len();
+        if sample_count == 0 {
+            return 0f64;
         }
 
-        sum / self.samples.len() as f64
+        let sum = self.samples.iter().sum::<f64>();
+
+        drop(lock);
+
+        sum / sample_count as f64
     }
 
     pub fn log(&mut self, size: usize) {
-        let _lock = self.lock.lock().unwrap();
+        let lock = self.lock.lock().unwrap();
 
         let now = Instant::now();
-        let elapsed = now - self.last_sample_time;
+        let elapsed = (now - self.last_sample_time).as_millis() as f64;
         self.last_sample_time = now;
 
-        let elapsed = elapsed.as_millis() as f64;
+        if elapsed == 0f64 {
+            return;
+        }
+
         let speed = size as f64 / elapsed * 1000f64;
 
         self.samples.push_back(speed);
@@ -51,5 +61,7 @@ impl SpeedMeter {
         if self.samples.len() > self.sample_count {
             self.samples.pop_front();
         }
+
+        drop(lock);
     }
 }
