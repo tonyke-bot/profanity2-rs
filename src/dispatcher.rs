@@ -267,8 +267,8 @@ fn format_speed(speed: f64) -> String {
     let speed = speed / 1024f64 / 1024f64;
 
     if speed < 1024f64 {
-        format!("{:.2}MB/s", speed)
+        format!("{:.2}MH/s", speed)
     } else {
-        format!("{:.2}GB/s", speed / 1024f64)
+        format!("{:.2}GH/s", speed / 1024f64)
     }
 }
