@@ -63,9 +63,9 @@ Commands:
 
 Options:
   -s, --seed <SEED>
-
+          Set seed to use for address generation.
       --skip-devices <SKIP_DEVICES>
-
+          Skip devices with given indices (comma separated).
   -W, --work-max <MAX_WORK_SIZE>
           Set OpenCL maximum work size. Default to [-i * -I]. [default: 4177920]
   -w, --work <WORK_SIZE>
@@ -74,10 +74,10 @@ Options:
           Set size of modular inverses to calculate in one work item. [default: 255]
   -I, --inverse-multiplier <INVERSE_MULTIPLIER>
           Set how many above work items will run in parallell. [default: 16384]
-  -c, --compact-speed
-
+      --compact-speed
+          Only show total iteration speed.
   -t, --target <TARGET>
-          [default: address] [possible values: address, contract]
+          Set target to search for [default: address] [possible values: address, contract]
   -h, --help
           Print help
   -V, --version
