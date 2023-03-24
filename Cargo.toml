@@ -7,6 +7,9 @@ repository = "https://github.com/THaGKI9/profanity2-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.dev]
+debug = true
+
 [dependencies]
 clap = { version = "4.1.11", features = ["derive"] }
 console = "0.15.5"
