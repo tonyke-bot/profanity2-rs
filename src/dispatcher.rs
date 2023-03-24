@@ -29,6 +29,8 @@ pub struct Dispatcher<'a> {
     total_initialized: RwLock<usize>,
     finish_events: Vec<Event>,
     compute_units: Vec<ComputeUnit<'a>>,
+
+    print_lock: Mutex<bool>,
 }
 
 impl<'a> Dispatcher<'a> {
@@ -46,6 +48,7 @@ impl<'a> Dispatcher<'a> {
             max_score: Mutex::new(0),
 
             config,
+            print_lock: Mutex::new(false),
         };
 
         dispatcher.self_ptr = &mut dispatcher as *mut Dispatcher;
@@ -186,6 +189,8 @@ impl<'a> Dispatcher<'a> {
             format!("{}s", time_elapsed / 1000)
         };
 
+        let _lock = self.print_lock.lock().unwrap();
+
         clear_pln!(
             "  Score: {:<2} Time: {:<7} {}: 0x{} Key: {:016x}{:016x}{:016x}{:016x}",
             score,
@@ -200,6 +205,14 @@ impl<'a> Dispatcher<'a> {
     }
 
     fn print_speed(&self) {
+        // Skip if another thread is printing.
+        let _lock = match self.print_lock.try_lock() {
+            Ok(l) => l,
+            Err(_) => {
+                return;
+            }
+        };
+
         let mut total_speed = 0f64;
         let mut message = String::with_capacity(512);
 
