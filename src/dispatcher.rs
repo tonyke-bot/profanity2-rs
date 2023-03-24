@@ -218,7 +218,7 @@ impl<'a> Dispatcher<'a> {
                 message.push_str(&format!(
                     " GPU {}: {:.2}MH/s",
                     i,
-                    total_speed / 1_000_000f64
+                    speed / 1_000_000f64
                 ));
             }
         }
