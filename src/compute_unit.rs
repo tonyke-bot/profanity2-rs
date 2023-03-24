@@ -23,7 +23,6 @@ pub struct ComputeUnit<'a> {
     size: usize,
     finish_event: Event,
 
-    mem_precomp: Option<Buffer<Point>>,
     mem_result: Buffer<HashResult>,
     mem_points_delta_x: Buffer<MpNumber>,
     mem_inversed_negative_double_gy: Buffer<MpNumber>,
@@ -41,6 +40,7 @@ pub struct ComputeUnit<'a> {
 
     speed_meter: SpeedMeter,
 
+    kernel_init: Option<Kernel>,
     kernel_inverse: Option<Kernel>,
     kernel_iterate: Option<Kernel>,
     kernel_contract_transform: Option<Kernel>,
@@ -113,12 +113,12 @@ impl<'a> ComputeUnit<'a> {
             round: 0,
             max_score: Mutex::new(0),
 
-            mem_precomp: None,
             mem_result,
             mem_points_delta_x,
             mem_inversed_negative_double_gy,
             mem_prev_lambda,
 
+            kernel_init: None,
             kernel_inverse: None,
             kernel_iterate: None,
             kernel_contract_transform: None,
@@ -141,7 +141,22 @@ impl<'a> ComputeUnit<'a> {
 
         self.last_init_size = 0;
         self.round = 0;
-        self.mem_precomp = Some(mem_precomp);
+
+        self.kernel_init = Some(Kernel::builder()
+            .program(&self.program)
+            .queue(self.queue.clone())
+            .name("profanity_init")
+            .global_work_size(SpatialDims::One(self.size))
+            .global_work_offset(SpatialDims::One(0))
+            .arg_named("precomp", mem_precomp)
+            .arg_named("pDeltaX", &self.mem_points_delta_x)
+            .arg_named("pPrevLambda", &self.mem_prev_lambda)
+            .arg_named("pResult", &self.mem_result)
+            .arg_named("seed", self.seed)
+            .arg_named("seedX", self.seed_x)
+            .arg_named("seedY", self.seed_y)
+            .build()
+            .unwrap());
     }
 
     pub fn init_continue(
@@ -155,31 +170,20 @@ impl<'a> ComputeUnit<'a> {
 
         if !finished {
             let size_to_work = min(self.size - self.size_initialized, init_batch_size);
-            let kernel_init = Kernel::builder()
-                .program(&self.program)
-                .queue(self.queue.clone())
-                .name("profanity_init")
-                .global_work_size(SpatialDims::One(size_to_work))
-                .global_work_offset(SpatialDims::One(self.size_initialized))
-                .arg_named("precomp", self.mem_precomp.as_ref().unwrap())
-                .arg_named("pDeltaX", &self.mem_points_delta_x)
-                .arg_named("pPrevLambda", &self.mem_prev_lambda)
-                .arg_named("pResult", &self.mem_result)
-                .arg_named("seed", self.seed)
-                .arg_named("seedX", self.seed_x)
-                .arg_named("seedY", self.seed_y)
-                .build()
-                .unwrap();
+
+            let kernel = self.kernel_init.as_mut().unwrap()
+                .set_default_global_work_size(SpatialDims::One(size_to_work))
+                .set_default_global_work_offset(SpatialDims::One(self.size_initialized));
 
             let mut event = Event::empty();
-            unsafe { kernel_init.cmd().enew(&mut event).enq().unwrap() };
+            unsafe { kernel.cmd().enew(&mut event).enq().unwrap() };
             self.queue.flush().unwrap();
 
             self.last_init_size = size_to_work;
 
             unsafe { event.set_callback(callback_receiver, callback_param) }.unwrap();
         } else {
-            self.mem_precomp = None;
+            self.kernel_init = None;
             self.finish_event.set_complete().unwrap();
         }
 
@@ -243,7 +247,7 @@ impl<'a> ComputeUnit<'a> {
                 .arg_named("pResult", &self.mem_result)
                 .arg_named("data1", buffer1)
                 .arg_named("data2", buffer2)
-                .arg_named("scoreMax", 0)
+                .arg_named("scoreMax", 0u8)
                 .global_work_size(SpatialDims::One(self.size))
                 .local_work_size(SpatialDims::One(self.config.local_work_size))
                 .build()
